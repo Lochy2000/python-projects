@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="Test your internet speed - download, upload, and ping">
+    <title>Speed Test</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .speed-display {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .speed-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            min-width: 150px;
+            flex: 1;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .speed-card.download {
+            border-top: 3px solid #00d4aa;
+        }
+
+        .speed-card.upload {
+            border-top: 3px solid #7c3aed;
+        }
+
+        .speed-card.ping {
+            border-top: 3px solid #f59e0b;
+        }
+
+        .speed-label {
+            font-size: 0.85rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .speed-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .speed-card.download .speed-value {
+            color: #00d4aa;
+        }
+
+        .speed-card.upload .speed-value {
+            color: #7c3aed;
+        }
+
+        .speed-card.ping .speed-value {
+            color: #f59e0b;
+        }
+
+        .speed-unit {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .test-button {
+            background: linear-gradient(135deg, #00d4aa 0%, #00a896 100%);
+            color: #fff;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .test-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 212, 170, 0.3);
+        }
+
+        .test-button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            color: #888;
+            font-size: 0.9rem;
+            min-height: 24px;
+        }
+
+        .server-info {
+            margin-top: 30px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .server-info strong {
+            color: #aaa;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 212, 170, 0.9);
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        .install-prompt button {
+            background: #fff;
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .install-prompt .dismiss {
+            background: transparent;
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 500px) {
+            .speed-card {
+                min-width: 100%;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .speed-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Speed Test</h1>
+    <p class="subtitle">Test your internet connection</p>
+
+    <div class="speed-display">
+        <div class="speed-card download">
+            <div class="speed-label">Download</div>
+            <div class="speed-value" id="download">--</div>
+            <div class="speed-unit">Mbps</div>
+        </div>
+        <div class="speed-card upload">
+            <div class="speed-label">Upload</div>
+            <div class="speed-value" id="upload">--</div>
+            <div class="speed-unit">Mbps</div>
+        </div>
+        <div class="speed-card ping">
+            <div class="speed-label">Ping</div>
+            <div class="speed-value" id="ping">--</div>
+            <div class="speed-unit">ms</div>
+        </div>
+    </div>
+
+    <button class="test-button" id="startTest">Start Test</button>
+
+    <div class="status" id="status"></div>
+
+    <div class="server-info" id="serverInfo" style="display: none;">
+        <strong>Server:</strong> <span id="serverName"></span><br>
+        <span id="serverLocation"></span>
+    </div>
+
+    <div class="install-prompt" id="installPrompt">
+        <span>Install app for quick access</span>
+        <div>
+            <button id="installBtn">Install</button>
+            <button class="dismiss" id="dismissBtn">Later</button>
+        </div>
+    </div>
+
+    <script>
+        const downloadEl = document.getElementById('download');
+        const uploadEl = document.getElementById('upload');
+        const pingEl = document.getElementById('ping');
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startTest');
+        const serverInfo = document.getElementById('serverInfo');
+        const serverName = document.getElementById('serverName');
+        const serverLocation = document.getElementById('serverLocation');
+
+        let isRunning = false;
+
+        async function runSpeedTest() {
+            if (isRunning) return;
+
+            isRunning = true;
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span class="spinner"></span>Testing...';
+
+            // Reset values
+            downloadEl.textContent = '--';
+            uploadEl.textContent = '--';
+            pingEl.textContent = '--';
+            serverInfo.style.display = 'none';
+
+            try {
+                statusEl.textContent = 'Finding best server...';
+
+                // Run full speed test
+                statusEl.textContent = 'Testing download speed...';
+                const response = await fetch('/api/speedtest');
+
+                if (!response.ok) {
+                    throw new Error('Speed test failed');
+                }
+
+                const data = await response.json();
+
+                // Update UI with results
+                downloadEl.textContent = data.download;
+                uploadEl.textContent = data.upload;
+                pingEl.textContent = data.ping;
+
+                // Show server info
+                serverName.textContent = data.server.name;
+                serverLocation.textContent = data.server.location;
+                serverInfo.style.display = 'block';
+
+                statusEl.textContent = 'Test complete!';
+
+            } catch (error) {
+                console.error('Speed test error:', error);
+                statusEl.textContent = 'Error: ' + error.message;
+            } finally {
+                isRunning = false;
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Test';
+            }
+        }
+
+        startBtn.addEventListener('click', runSpeedTest);
+
+        // PWA Install prompt
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const dismissBtn = document.getElementById('dismissBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installPrompt.classList.add('show');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installPrompt.classList.remove('show');
+            }
+        });
+
+        dismissBtn.addEventListener('click', () => {
+            installPrompt.classList.remove('show');
+        });
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>
